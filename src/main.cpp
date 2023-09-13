@@ -4,6 +4,9 @@
 #include "crow_all.h"
 #include "json.hpp"
 #include <random>
+#include <list>
+
+#include "../samples/simulate_random_actions.cpp"
 
 static const uint32_t NUM_ROWS = 15;
 
@@ -98,12 +101,79 @@ int main()
         
         // Create the entities
         // <YOUR CODE HERE>
+        // Create the entities randomly
+        uint32_t plants_count = (uint32_t)request_body["plants"];
+        uint32_t herbivores_count = (uint32_t)request_body["herbivores"];
+        uint32_t carnivores_count = (uint32_t)request_body["carnivores"];
+
+        // Randomly place plants
+        for (uint32_t i = 0; i < plants_count; ++i) {
+            uint32_t x, y;
+            do {
+                x = std::rand() % NUM_ROWS;
+                y = std::rand() % NUM_ROWS;
+            } while (entity_grid[x][y].type != empty);
+            entity_grid[x][y] = { plant, 0, 0 };
+        }
+
+        // Randomly place herbivores
+        for (uint32_t i = 0; i < herbivores_count; ++i) {
+            uint32_t x, y;
+            do {
+                x = std::rand() % NUM_ROWS;
+                y = std::rand() % NUM_ROWS;
+            } while (entity_grid[x][y].type != empty);
+            entity_grid[x][y] = { herbivore, 100, 0 };
+        }
+
+        // Randomly place carnivores
+        for (uint32_t i = 0; i < carnivores_count; ++i) {
+            uint32_t x, y;
+            do {
+                x = std::rand() % NUM_ROWS;
+                y = std::rand() % NUM_ROWS;
+            } while (entity_grid[x][y].type != empty);
+            entity_grid[x][y] = { carnivore, 100, 0 };
+        }
+
+
 
         // Return the JSON representation of the entity grid
         nlohmann::json json_grid = entity_grid; 
         res.body = json_grid.dump();
         res.end(); });
 
+    void splant(std::vector<std::vector<entity_t>> &entity_grid, int i, int j ){
+        if (entity_grid[i][j].age > 10) {
+            entity_grid[i][j].type = empty;
+            entity_grid[i][j].age = 0;
+            entity_grid[i][j].energy = 0;
+        }
+        if(random_action(PLANT_REPRODUCTION_PROBABILITY)){
+        std::list<int>
+        for (int a; -1 <=a<=1, a++){
+            for (int b; -1 <=b<=1, b++){
+                if(entity_grid[i+a][j].type == empty) 
+            }
+        }
+        }
+
+
+    }
+    /*
+    void sherb(){}
+    void scarn(){}
+    
+    void iteration(){
+        for(int i=0; i<NUM_ROWS; i++){
+            for(int j=0; j<NUM_ROWS; j++){
+                if (entity_grid[i][j].type == plant) splant();
+                if (entity_grid[i][j].type == hebivore) sherb();
+                if (entity_grid[i][j].type == carnivore) scar();
+
+            }
+        }
+    }*/
     // Endpoint to process HTTP GET requests for the next simulation iteration
     CROW_ROUTE(app, "/next-iteration")
         .methods("GET"_method)([]()
@@ -120,3 +190,4 @@ int main()
 
     return 0;
 }
+
