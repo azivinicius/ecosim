@@ -83,9 +83,9 @@ static std::vector<std::vector<entity_t>> entity_grid;
         int a = rand() % 3; //gera 0, 1 ou 2
         if(a!=1){
             if(entity_grid[i+a-1][j].type == empty){
-                entity_grid[i+a-1][j].type == plant;
-                entity_grid[i+a-1][j].age == 0;
-                entity_grid[i+a-1][j].energy == 0;
+                entity_grid[i+a-1][j].type = plant;
+                entity_grid[i+a-1][j].age = 0;
+                entity_grid[i+a-1][j].energy = 0;
 
             }
             }
@@ -93,9 +93,9 @@ static std::vector<std::vector<entity_t>> entity_grid;
             int b = rand() % 3;
             if(b == 1) b=b+1;
             if(entity_grid[i][j+b-1].type == empty){
-                entity_grid[i][j+b-1].type == plant;
-                entity_grid[i][j+b-1].age == 0;
-                entity_grid[i][j+b-1].energy == 0;
+                entity_grid[i][j+b-1].type = plant;
+                entity_grid[i][j+b-1].age = 0;
+                entity_grid[i][j+b-1].energy = 0;
 
         }        
 
@@ -110,9 +110,13 @@ static std::vector<std::vector<entity_t>> entity_grid;
             for(int j=0; j<NUM_ROWS; j++){
                 if (entity_grid[i][j].type == plant) {
                     std::thread t(splant, entity_grid[i][j]);
+                    threads.push_back(std::move(t));
                 };
-    for (auto& t : threads)
-    t.join(); // or t.join() to join it)
+    }}
+    
+        for (auto& t : threads)
+                t.join(); 
+
     }
 
 
@@ -213,9 +217,9 @@ int main()
                                {
         // Simulate the next iteration
         // Iterate over the entity grid and simulate the behaviour of each entity
-        std::thread s(simulate);
+       std::thread s(simulate);
         // <YOUR CODE HERE>
-        s.join();
+  //      s.join();
         
         // Return the JSON representation of the entity grid
         nlohmann::json json_grid = entity_grid; 
