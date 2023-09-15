@@ -46,6 +46,7 @@ struct entity_t
     entity_type_t type;
     int32_t energy;
     int32_t age;
+    std::pair<int,int> pos;
 };
 
 // Auxiliary code to convert the entity_type_t enum to a string
@@ -67,6 +68,53 @@ namespace nlohmann
 
 // Grid that contains the entities
 static std::vector<std::vector<entity_t>> entity_grid;
+
+    void splant(entity_t ent){
+        int i = ent.pos.first;
+        int j = ent.pos.second;
+
+        if (entity_grid[i][j].age > 10) {
+            entity_grid[i][j].type = empty;
+            entity_grid[i][j].age = 0;
+            entity_grid[i][j].energy = 0;
+        }
+        if(random_action(PLANT_REPRODUCTION_PROBABILITY)){
+        std::vector<entity_t> available;
+        int a = rand() % 3; //gera 0, 1 ou 2
+        if(a!=1){
+            if(entity_grid[i+a-1][j].type == empty){
+                entity_grid[i+a-1][j].type == plant;
+                entity_grid[i+a-1][j].age == 0;
+                entity_grid[i+a-1][j].energy == 0;
+
+            }
+            }
+        if(a==1){
+            int b = rand() % 3;
+            if(b == 1) b=b+1;
+            if(entity_grid[i][j+b-1].type == empty){
+                entity_grid[i][j+b-1].type == plant;
+                entity_grid[i][j+b-1].age == 0;
+                entity_grid[i][j+b-1].energy == 0;
+
+        }        
+
+    };
+        }
+    }
+
+    void simulate(){
+        int aux = 0;
+        std::vector<std::thread> threads;
+        for(int i=0; i<NUM_ROWS; i++){
+            for(int j=0; j<NUM_ROWS; j++){
+                if (entity_grid[i][j].type == plant) {
+                    std::thread t(splant, entity_grid[i][j]);
+                };
+    for (auto& t : threads)
+    t.join(); // or t.join() to join it)
+    }
+
 
 int main()
 {
@@ -113,7 +161,7 @@ int main()
                 x = std::rand() % NUM_ROWS;
                 y = std::rand() % NUM_ROWS;
             } while (entity_grid[x][y].type != empty);
-            entity_grid[x][y] = { plant, 0, 0 };
+            entity_grid[x][y] = { plant, 0, 0, {x,y} };
         }
 
         // Randomly place herbivores
@@ -123,7 +171,8 @@ int main()
                 x = std::rand() % NUM_ROWS;
                 y = std::rand() % NUM_ROWS;
             } while (entity_grid[x][y].type != empty);
-            entity_grid[x][y] = { herbivore, 100, 0 };
+            entity_grid[x][y] = { herbivore, 100, 0, {x,y} };
+      
         }
 
         // Randomly place carnivores
@@ -133,7 +182,7 @@ int main()
                 x = std::rand() % NUM_ROWS;
                 y = std::rand() % NUM_ROWS;
             } while (entity_grid[x][y].type != empty);
-            entity_grid[x][y] = { carnivore, 100, 0 };
+            entity_grid[x][y] = { carnivore, 100, 0, {x,y}};  
         }
 
 
@@ -143,23 +192,7 @@ int main()
         res.body = json_grid.dump();
         res.end(); });
 
-    void splant(std::vector<std::vector<entity_t>> &entity_grid, int i, int j ){
-        if (entity_grid[i][j].age > 10) {
-            entity_grid[i][j].type = empty;
-            entity_grid[i][j].age = 0;
-            entity_grid[i][j].energy = 0;
-        }
-        if(random_action(PLANT_REPRODUCTION_PROBABILITY)){
-        std::list<int>
-        for (int a; -1 <=a<=1, a++){
-            for (int b; -1 <=b<=1, b++){
-                if(entity_grid[i+a][j].type == empty) 
-            }
-        }
-        }
 
-
-    }
     /*
     void sherb(){}
     void scarn(){}
@@ -180,8 +213,9 @@ int main()
                                {
         // Simulate the next iteration
         // Iterate over the entity grid and simulate the behaviour of each entity
-        
+        std::thread s(simulate);
         // <YOUR CODE HERE>
+        s.join();
         
         // Return the JSON representation of the entity grid
         nlohmann::json json_grid = entity_grid; 
@@ -190,4 +224,5 @@ int main()
 
     return 0;
 }
+
 

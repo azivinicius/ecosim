@@ -22,7 +22,12 @@ void simulate_random_actions() {
     } else {
         std::cout << "Plant does not grow.\n";
     }
-
+/*
+int main() {
+    // Run a sample simulation
+    simulate_random_actions();
+    return 0;
+}*/
     // Simulate herbivore action
     if (random_action(herbivore_move_probability)) {
         std::cout << "Herbivore moves.\n";
@@ -38,8 +43,3 @@ void simulate_random_actions() {
     }
 }
 
-int main() {
-    // Run a sample simulation
-    simulate_random_actions();
-    return 0;
-}
