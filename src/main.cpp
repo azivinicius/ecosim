@@ -69,56 +69,123 @@ namespace nlohmann
 // Grid that contains the entities
 static std::vector<std::vector<entity_t>> entity_grid;
 
-    void splant(entity_t ent){
-        int i = ent.pos.first;
-        int j = ent.pos.second;
-
-        if (entity_grid[i][j].age > 10) {
-            entity_grid[i][j].type = empty;
-            entity_grid[i][j].age = 0;
-            entity_grid[i][j].energy = 0;
-        }
-        if(random_action(PLANT_REPRODUCTION_PROBABILITY)){
-        std::vector<entity_t> available;
+ void reproduct(std::pair<int,int> loc, entity_type_t aux_type, double REPRODUCTION_PROB){
+        if(random_action(REPRODUCTION_PROB)){
         int a = rand() % 3; //gera 0, 1 ou 2
         if(a!=1){
-            if(entity_grid[i+a-1][j].type == empty){
-                entity_grid[i+a-1][j].type = plant;
-                entity_grid[i+a-1][j].age = 0;
-                entity_grid[i+a-1][j].energy = 0;
-
+            if(loc.first+a-1 < NUM_ROWS){
+            if(entity_grid[loc.first+a-1][loc.second].type == empty){
+                entity_grid[loc.first+a-1][loc.second].type = aux_type;
+                entity_grid[loc.first+a-1][loc.second].age = 0;
+                entity_grid[loc.first+a-1][loc.second].energy = 0;
             }
-            }
+            }}
         if(a==1){
             int b = rand() % 3;
             if(b == 1) b=b+1;
-            if(entity_grid[i][j+b-1].type == empty){
-                entity_grid[i][j+b-1].type = plant;
-                entity_grid[i][j+b-1].age = 0;
-                entity_grid[i][j+b-1].energy = 0;
-
-        }        
-
-    };
+            if(loc.second+b-1 < NUM_ROWS){
+            if(entity_grid[loc.first][loc.second+b-1].type == empty){
+                entity_grid[loc.first][loc.second+b-1].type = aux_type;
+                entity_grid[loc.first][loc.second+b-1].age = 0;
+                entity_grid[loc.first][loc.second+b-1].energy = 0;
+        }
+        }}
         }
     }
+void move(std::pair<int,int> loc, entity_type_t aux_type, double MOVE_PROB){
+        if(random_action(MOVE_PROB)){
+        int a = rand() % 3; //gera 0, 1 ou 2
+        if(a!=1){
+            if(loc.first+a-1 < NUM_ROWS){
+            if(entity_grid[loc.first+a-1][loc.second].type == empty){
+                entity_grid[loc.first+a-1][loc.second].type = aux_type;
+                entity_grid[loc.first+a-1][loc.second].age = entity_grid[loc.first][loc.second].age;
+                entity_grid[loc.first+a-1][loc.second].energy = entity_grid[loc.first][loc.second].energy;
+            }
+            }}
+        if(a==1){
+            int b = rand() % 3;
+            if(b == 1) b=b+1;
+            if(loc.second+b-1 < NUM_ROWS){
+            if(entity_grid[loc.first][loc.second+b-1].type == empty){
+                entity_grid[loc.first][loc.second+b-1].type = aux_type;
+                entity_grid[loc.first][loc.second+b-1].age = entity_grid[loc.first][loc.second].age;
+                entity_grid[loc.first][loc.second+b-1].energy = entity_grid[loc.first][loc.second].energy;
+        }
 
-    void simulate(){
-        int aux = 0;
-        std::vector<std::thread> threads;
-        for(int i=0; i<NUM_ROWS; i++){
-            for(int j=0; j<NUM_ROWS; j++){
-                if (entity_grid[i][j].type == plant) {
-                    std::thread t(splant, entity_grid[i][j]);
-                    threads.push_back(std::move(t));
-                };
+                entity_grid[loc.first][loc.second].type = empty;
+                entity_grid[loc.first][loc.second].age = 0;
+                entity_grid[loc.first][loc.second].energy = 0;
+        }
+    }
+        }}
+
+void eat(std::pair<int,int> loc, entity_type_t aux_type,
+    double EAT_PROB, entity_type_t eaten){
+        if(random_action(EAT_PROB)){
+            int a = rand() % 3; //gera 0, 1 ou 2
+        if(a!=1){
+            if(loc.first+a-1 < NUM_ROWS){
+            if(entity_grid[loc.first+a-1][loc.second].type == eaten){
+                entity_grid[loc.first+a-1][loc.second].type = aux_type;
+                entity_grid[loc.first+a-1][loc.second].age = entity_grid[loc.first][loc.second].age;
+                entity_grid[loc.first+a-1][loc.second].energy = entity_grid[loc.first][loc.second].energy;
+            }
+            }}
+        if(a==1){
+            int b = rand() % 3;
+            if(b == 1) b=b+1;
+            if(loc.second+b-1 < NUM_ROWS){
+            if(entity_grid[loc.first][loc.second+b-1].type == eaten){
+                entity_grid[loc.first][loc.second+b-1].type = aux_type;
+                entity_grid[loc.first][loc.second+b-1].age = entity_grid[loc.first][loc.second].age;
+                entity_grid[loc.first][loc.second+b-1].energy = entity_grid[loc.first][loc.second].energy;
+        }
+    }}
+            entity_grid[loc.first][loc.second].type = empty;
+            entity_grid[loc.first][loc.second].age = 0;
+            entity_grid[loc.first][loc.second].energy = 0;    
+    }}
+
+void simulate(entity_type_t aux_type, uint32_t MAX_AGE, double REPRODUCTION_PROB,
+    double MOVE_PROB, double EAT_PROB, entity_type_t eaten){
+    std::vector<std::pair<int,int>> active;
+    for (int i=0; i < NUM_ROWS; i++){
+    for (int j=0; j < NUM_ROWS; j++){
+        if(entity_grid[i][j].type == aux_type) active.push_back({i,j});
     }}
     
-        for (auto& t : threads)
-                t.join(); 
+    for (auto loc : active) {
+        
+        if (entity_grid[loc.first][loc.second].age >= MAX_AGE) {
+            entity_grid[loc.first][loc.second].type = empty;
+            entity_grid[loc.first][loc.second].age = 0;
+            entity_grid[loc.first][loc.second].energy = 0;
+        }
 
+        entity_grid[loc.first][loc.second].age = entity_grid[loc.first][loc.second].age + 1;
+        
+        reproduct(loc, aux_type, REPRODUCTION_PROB);
+        if(aux_type != plant){
+            move(loc, aux_type, MOVE_PROB);
+            eat (loc, aux_type,EAT_PROB, eaten);
+        } 
+
+        }
+        }
+    
+void run (){
+        std::thread s_plant(simulate, plant, PLANT_MAXIMUM_AGE, PLANT_REPRODUCTION_PROBABILITY,
+                            0, 0, plant);
+        std::thread s_herb(simulate, herbivore, HERBIVORE_EAT_PROBABILITY, HERBIVORE_REPRODUCTION_PROBABILITY,
+                            HERBIVORE_MOVE_PROBABILITY, HERBIVORE_EAT_PROBABILITY, plant);
+        std::thread s_carn(simulate, carnivore, CARNIVORE_MAXIMUM_AGE, CARNIVORE_REPRODUCTION_PROBABILITY,
+                            CARNIVORE_MOVE_PROBABILITY, CARNIVORE_EAT_PROBABILITY, herbivore);    
+
+        s_plant.join();
+        s_herb.join();
+        s_carn.join();
     }
-
 
 int main()
 {
@@ -197,30 +264,22 @@ int main()
         res.end(); });
 
 
-    /*
-    void sherb(){}
-    void scarn(){}
-    
-    void iteration(){
-        for(int i=0; i<NUM_ROWS; i++){
-            for(int j=0; j<NUM_ROWS; j++){
-                if (entity_grid[i][j].type == plant) splant();
-                if (entity_grid[i][j].type == hebivore) sherb();
-                if (entity_grid[i][j].type == carnivore) scar();
 
-            }
-        }
-    }*/
     // Endpoint to process HTTP GET requests for the next simulation iteration
     CROW_ROUTE(app, "/next-iteration")
         .methods("GET"_method)([]()
                                {
         // Simulate the next iteration
         // Iterate over the entity grid and simulate the behaviour of each entity
-       std::thread s(simulate);
+        
         // <YOUR CODE HERE>
   //      s.join();
-        
+        simulate (plant, PLANT_MAXIMUM_AGE, PLANT_REPRODUCTION_PROBABILITY,
+                            0, 0, plant);
+        simulate (herbivore, HERBIVORE_EAT_PROBABILITY, HERBIVORE_REPRODUCTION_PROBABILITY,
+                            HERBIVORE_MOVE_PROBABILITY, HERBIVORE_EAT_PROBABILITY, plant);
+        simulate (carnivore, CARNIVORE_MAXIMUM_AGE, CARNIVORE_REPRODUCTION_PROBABILITY,
+                            CARNIVORE_MOVE_PROBABILITY, CARNIVORE_EAT_PROBABILITY, herbivore);    
         // Return the JSON representation of the entity grid
         nlohmann::json json_grid = entity_grid; 
         return json_grid.dump(); });
