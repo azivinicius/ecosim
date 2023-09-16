@@ -69,7 +69,7 @@ namespace nlohmann
 // Grid that contains the entities
 static std::vector<std::vector<entity_t>> entity_grid;
 
- void reproduct(std::pair<int,int> loc, entity_type_t aux_type, double REPRODUCTION_PROB){
+void reproduct(std::pair<int,int> loc, entity_type_t aux_type, double REPRODUCTION_PROB){
         if(random_action(REPRODUCTION_PROB)){
         int a = rand() % 3; //gera 0, 1 ou 2
         if(a!=1){
@@ -92,8 +92,16 @@ static std::vector<std::vector<entity_t>> entity_grid;
         }}
         }
     }
+void kill(std::pair<int,int> loc){
+            entity_grid[loc.first][loc.second].type = empty;
+            entity_grid[loc.first][loc.second].age = 0;
+            entity_grid[loc.first][loc.second].energy = 0;
+}
 void move(std::pair<int,int> loc, entity_type_t aux_type, double MOVE_PROB){
         if(random_action(MOVE_PROB)){
+
+        entity_grid[loc.first][loc.second].energy = entity_grid[loc.first][loc.second].energy -5;
+        
         int a = rand() % 3; //gera 0, 1 ou 2
         if(a!=1){
             if(loc.first+a-1 < NUM_ROWS){
@@ -123,13 +131,18 @@ void move(std::pair<int,int> loc, entity_type_t aux_type, double MOVE_PROB){
 void eat(std::pair<int,int> loc, entity_type_t aux_type,
     double EAT_PROB, entity_type_t eaten){
         if(random_action(EAT_PROB)){
-            int a = rand() % 3; //gera 0, 1 ou 2
+        bool ate = 0;
+        int a = rand() % 3; //gera 0, 1 ou 2
         if(a!=1){
             if(loc.first+a-1 < NUM_ROWS){
             if(entity_grid[loc.first+a-1][loc.second].type == eaten){
                 entity_grid[loc.first+a-1][loc.second].type = aux_type;
                 entity_grid[loc.first+a-1][loc.second].age = entity_grid[loc.first][loc.second].age;
-                entity_grid[loc.first+a-1][loc.second].energy = entity_grid[loc.first][loc.second].energy;
+                if(aux_type == herbivore)
+                entity_grid[loc.first+a-1][loc.second].energy = entity_grid[loc.first][loc.second].energy + 30;
+                if(aux_type == carnivore)
+                entity_grid[loc.first+a-1][loc.second].energy = entity_grid[loc.first][loc.second].energy + 20;
+                ate = true;
             }
             }}
         if(a==1){
@@ -139,13 +152,19 @@ void eat(std::pair<int,int> loc, entity_type_t aux_type,
             if(entity_grid[loc.first][loc.second+b-1].type == eaten){
                 entity_grid[loc.first][loc.second+b-1].type = aux_type;
                 entity_grid[loc.first][loc.second+b-1].age = entity_grid[loc.first][loc.second].age;
-                entity_grid[loc.first][loc.second+b-1].energy = entity_grid[loc.first][loc.second].energy;
+                if(aux_type == herbivore)
+                entity_grid[loc.first][loc.second+b-1].energy = entity_grid[loc.first][loc.second].energy + 30;
+                if(aux_type == carnivore)
+                entity_grid[loc.first][loc.second+b-1].energy = entity_grid[loc.first][loc.second].energy + 20;
+                ate = true;
         }
     }}
+    if(entity_grid[loc.first][loc.second].energy > MAXIMUM_ENERGY) entity_grid[loc.first][loc.second].energy = MAXIMUM_ENERGY;
+    if( ate == true){
             entity_grid[loc.first][loc.second].type = empty;
             entity_grid[loc.first][loc.second].age = 0;
             entity_grid[loc.first][loc.second].energy = 0;    
-    }}
+    }}}
 
 void simulate(entity_type_t aux_type, uint32_t MAX_AGE, double REPRODUCTION_PROB,
     double MOVE_PROB, double EAT_PROB, entity_type_t eaten){
@@ -156,12 +175,9 @@ void simulate(entity_type_t aux_type, uint32_t MAX_AGE, double REPRODUCTION_PROB
     }}
     
     for (auto loc : active) {
-        
-        if (entity_grid[loc.first][loc.second].age >= MAX_AGE) {
-            entity_grid[loc.first][loc.second].type = empty;
-            entity_grid[loc.first][loc.second].age = 0;
-            entity_grid[loc.first][loc.second].energy = 0;
-        }
+        if(aux_type!=plant){
+            if(entity_grid[loc.first][loc.second].energy == 0) kill (loc);}
+        if (entity_grid[loc.first][loc.second].age >= MAX_AGE) kill (loc);
 
         entity_grid[loc.first][loc.second].age = entity_grid[loc.first][loc.second].age + 1;
         
