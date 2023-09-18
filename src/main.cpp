@@ -46,7 +46,6 @@ struct entity_t
     entity_type_t type;
     int32_t energy;
     int32_t age;
-    std::pair<int,int> pos;
 };
 
 // Auxiliary code to convert the entity_type_t enum to a string
@@ -69,7 +68,8 @@ namespace nlohmann
 // Grid that contains the entities
 static std::vector<std::vector<entity_t>> entity_grid;
 
-void reproduct(std::pair<int,int> loc, entity_type_t aux_type, double REPRODUCTION_PROB){
+bool reproduct(std::pair<int,int> loc, entity_type_t aux_type, double REPRODUCTION_PROB){
+        
         if(random_action(REPRODUCTION_PROB)){
         int a = rand() % 3; //gera 0, 1 ou 2
         if(a!=1){
@@ -78,6 +78,7 @@ void reproduct(std::pair<int,int> loc, entity_type_t aux_type, double REPRODUCTI
                 entity_grid[loc.first+a-1][loc.second].type = aux_type;
                 entity_grid[loc.first+a-1][loc.second].age = 0;
                 entity_grid[loc.first+a-1][loc.second].energy = 0;
+                return 1;
             }
             }}
         if(a==1){
@@ -88,8 +89,10 @@ void reproduct(std::pair<int,int> loc, entity_type_t aux_type, double REPRODUCTI
                 entity_grid[loc.first][loc.second+b-1].type = aux_type;
                 entity_grid[loc.first][loc.second+b-1].age = 0;
                 entity_grid[loc.first][loc.second+b-1].energy = 0;
+                return 1;
         }
         }}
+        return 0;
         }
     }
 void kill(std::pair<int,int> loc){
@@ -99,33 +102,30 @@ void kill(std::pair<int,int> loc){
 }
 void move(std::pair<int,int> loc, entity_type_t aux_type, double MOVE_PROB){
         if(random_action(MOVE_PROB)){
-
-        entity_grid[loc.first][loc.second].energy = entity_grid[loc.first][loc.second].energy -5;
         
         int a = rand() % 3; //gera 0, 1 ou 2
         if(a!=1){
-            if(loc.first+a-1 < NUM_ROWS){
+            if(loc.first+a-1 < NUM_ROWS && loc.first+a-1 >=0){
             if(entity_grid[loc.first+a-1][loc.second].type == empty){
                 entity_grid[loc.first+a-1][loc.second].type = aux_type;
                 entity_grid[loc.first+a-1][loc.second].age = entity_grid[loc.first][loc.second].age;
-                entity_grid[loc.first+a-1][loc.second].energy = entity_grid[loc.first][loc.second].energy;
+                entity_grid[loc.first+a-1][loc.second].energy = entity_grid[loc.first][loc.second].energy-5;
             }
             }}
-        if(a==1){
+        else{
             int b = rand() % 3;
             if(b == 1) b=b+1;
-            if(loc.second+b-1 < NUM_ROWS){
+            if(loc.second+b-1 < NUM_ROWS && loc.first+-1 >=0){
             if(entity_grid[loc.first][loc.second+b-1].type == empty){
                 entity_grid[loc.first][loc.second+b-1].type = aux_type;
                 entity_grid[loc.first][loc.second+b-1].age = entity_grid[loc.first][loc.second].age;
-                entity_grid[loc.first][loc.second+b-1].energy = entity_grid[loc.first][loc.second].energy;
+                entity_grid[loc.first][loc.second+b-1].energy = entity_grid[loc.first][loc.second].energy-5;
+            }
         }
-
+    }
                 entity_grid[loc.first][loc.second].type = empty;
                 entity_grid[loc.first][loc.second].age = 0;
                 entity_grid[loc.first][loc.second].energy = 0;
-        }
-    }
         }}
 
 void eat(std::pair<int,int> loc, entity_type_t aux_type,
@@ -166,22 +166,58 @@ void eat(std::pair<int,int> loc, entity_type_t aux_type,
             entity_grid[loc.first][loc.second].energy = 0;    
     }}}
 
+void splants(){
+    std::vector<std::pair<int,int>> active;
+    for (int i=0; i < NUM_ROWS; i++){
+    for (int j=0; j < NUM_ROWS; j++){
+        if(entity_grid[i][j].type == plant) active.push_back({i,j}); // Mapeia todas as posições com o tipo passado como parametro
+
+    }}
+    for (auto loc : active) {
+        if (entity_grid[loc.first][loc.second].age >= 10) kill (loc); //Mata entidade com idade excedente
+
+        else entity_grid[loc.first][loc.second].age = entity_grid[loc.first][loc.second].age + 1; //Incrementa idade dos que não morreram
+        
+        bool reproducted = reproduct(loc, plant, PLANT_REPRODUCTION_PROBABILITY);
+
+}}
+
+void sherbivores(){
+    std::vector<std::pair<int,int>> active;
+    for (int i=0; i < NUM_ROWS; i++){
+    for (int j=0; j < NUM_ROWS; j++){
+        if(entity_grid[i][j].type == herbivore) active.push_back({i,j}); // Mapeia todas as posições com o tipo passado como parametro
+
+    }}
+    
+    for (auto loc : active) {
+        if(entity_grid[loc.first][loc.second].energy == 0) kill (loc); //Mata animal sem energia
+        if (entity_grid[loc.first][loc.second].age >= HERBIVORE_MAXIMUM_AGE) kill (loc); //Mata entidade com idade excedente
+        else entity_grid[loc.first][loc.second].age = entity_grid[loc.first][loc.second].age + 1; //Incrementa idade dos que não morreram
+        reproduct(loc, herbivore, HERBIVORE_REPRODUCTION_PROBABILITY);
+        move (loc, herbivore, HERBIVORE_MOVE_PROBABILITY);
+        eat (loc, herbivore, HERBIVORE_EAT_PROBABILITY, plant);
+    }
+}
 void simulate(entity_type_t aux_type, uint32_t MAX_AGE, double REPRODUCTION_PROB,
     double MOVE_PROB, double EAT_PROB, entity_type_t eaten){
     std::vector<std::pair<int,int>> active;
     for (int i=0; i < NUM_ROWS; i++){
     for (int j=0; j < NUM_ROWS; j++){
-        if(entity_grid[i][j].type == aux_type) active.push_back({i,j});
+        if(entity_grid[i][j].type == aux_type) active.push_back({i,j}); // Mapeia todas as posições com o tipo passado como parametro
+
     }}
     
     for (auto loc : active) {
         if(aux_type!=plant){
-            if(entity_grid[loc.first][loc.second].energy == 0) kill (loc);}
-        if (entity_grid[loc.first][loc.second].age >= MAX_AGE) kill (loc);
+            if(entity_grid[loc.first][loc.second].energy == 0) kill (loc);} //Mata animal sem energia
+        if (entity_grid[loc.first][loc.second].age >= MAX_AGE) kill (loc); //Mata entidade com idade excedente
 
-        entity_grid[loc.first][loc.second].age = entity_grid[loc.first][loc.second].age + 1;
+        else entity_grid[loc.first][loc.second].age = entity_grid[loc.first][loc.second].age + 1; //Incrementa idade dos que não morreram
         
-        reproduct(loc, aux_type, REPRODUCTION_PROB);
+        if (aux_type == plant) 
+        bool reproducted = reproduct(loc, aux_type, REPRODUCTION_PROB);
+
         if(aux_type != plant){
             move(loc, aux_type, MOVE_PROB);
             eat (loc, aux_type,EAT_PROB, eaten);
@@ -240,36 +276,51 @@ int main()
         uint32_t plants_count = (uint32_t)request_body["plants"];
         uint32_t herbivores_count = (uint32_t)request_body["herbivores"];
         uint32_t carnivores_count = (uint32_t)request_body["carnivores"];
-
+        std::map< std::pair<int,int>,bool> grid;
+        for (int i=0; i < NUM_ROWS; i++){
+            for (int j=0; j < NUM_ROWS; j++){
+                grid[{i,j}] = 0;
+            }
+        }
         // Randomly place plants
         for (uint32_t i = 0; i < plants_count; ++i) {
+        bool allocated = 0;
+        while (allocated == 0){
             uint32_t x, y;
-            do {
-                x = std::rand() % NUM_ROWS;
-                y = std::rand() % NUM_ROWS;
-            } while (entity_grid[x][y].type != empty);
-            entity_grid[x][y] = { plant, 0, 0, {x,y} };
+            x = std::rand() % NUM_ROWS;
+            y = std::rand() % NUM_ROWS;
+            if(grid[{x,y}]==0){
+                entity_grid[x][y] = { plant, 0, 0};
+                grid[{x,y}] = 1;
+                allocated = 1;
+        }}
         }
-
         // Randomly place herbivores
         for (uint32_t i = 0; i < herbivores_count; ++i) {
-            uint32_t x, y;
-            do {
+            bool allocated = 0;
+            while (allocated == 0){
+                uint32_t x, y;
                 x = std::rand() % NUM_ROWS;
                 y = std::rand() % NUM_ROWS;
-            } while (entity_grid[x][y].type != empty);
-            entity_grid[x][y] = { herbivore, 100, 0, {x,y} };
-      
+                if(grid[{x,y}]==0){
+                    entity_grid[x][y] = { herbivore, 100, 0 };
+                    grid[{x,y}] = 1;
+                    allocated = 1;
+            }}
         }
 
         // Randomly place carnivores
         for (uint32_t i = 0; i < carnivores_count; ++i) {
-            uint32_t x, y;
-            do {
+            bool allocated = 0;
+            while (allocated == 0){
+                uint32_t x, y;
                 x = std::rand() % NUM_ROWS;
                 y = std::rand() % NUM_ROWS;
-            } while (entity_grid[x][y].type != empty);
-            entity_grid[x][y] = { carnivore, 100, 0, {x,y}};  
+                if(grid[{x,y}]==0){
+                    entity_grid[x][y] = { carnivore, 100, 0 };
+                    grid[{x,y}] = 1;
+                    allocated = 1;  
+        }}      
         }
 
 
